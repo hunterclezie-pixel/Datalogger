@@ -40,7 +40,7 @@
             ADCValueLabel = new Label();
             SampleCountLabel = new Label();
             StatusStrip = new StatusStrip();
-            StatusLabel = new ToolStripStatusLabel();
+            PicStatusLabel = new ToolStripStatusLabel();
             RateStatusLabel = new ToolStripStatusLabel();
             FileStatusLabel = new ToolStripStatusLabel();
             StatusTimer = new System.Windows.Forms.Timer(components);
@@ -90,6 +90,7 @@
             SaveButton.TabIndex = 4;
             SaveButton.Text = "Save";
             SaveButton.UseVisualStyleBackColor = true;
+            SaveButton.Click += SaveButton_Click;
             // 
             // StopButton
             // 
@@ -99,6 +100,7 @@
             StopButton.TabIndex = 5;
             StopButton.Text = "Stop";
             StopButton.UseVisualStyleBackColor = true;
+            StopButton.Click += StopButton_Click;
             // 
             // StartButton
             // 
@@ -108,6 +110,7 @@
             StartButton.TabIndex = 6;
             StartButton.Text = "Start";
             StartButton.UseVisualStyleBackColor = true;
+            StartButton.Click += StartButton_Click;
             // 
             // GraphPictureBox
             // 
@@ -138,18 +141,18 @@
             // StatusStrip
             // 
             StatusStrip.ImageScalingSize = new Size(20, 20);
-            StatusStrip.Items.AddRange(new ToolStripItem[] { StatusLabel, RateStatusLabel, FileStatusLabel });
+            StatusStrip.Items.AddRange(new ToolStripItem[] { PicStatusLabel, RateStatusLabel, FileStatusLabel });
             StatusStrip.Location = new Point(0, 424);
             StatusStrip.Name = "StatusStrip";
             StatusStrip.Size = new Size(800, 26);
             StatusStrip.TabIndex = 10;
             StatusStrip.Text = "statusStrip1";
             // 
-            // StatusLabel
+            // PicStatusLabel
             // 
-            StatusLabel.Name = "StatusLabel";
-            StatusLabel.Size = new Size(116, 20);
-            StatusLabel.Text = "COM Port Status";
+            PicStatusLabel.Name = "PicStatusLabel";
+            PicStatusLabel.Size = new Size(116, 20);
+            PicStatusLabel.Text = "COM Port Status";
             // 
             // RateStatusLabel
             // 
@@ -205,7 +208,7 @@
         private Label ADCValueLabel;
         private Label SampleCountLabel;
         private StatusStrip StatusStrip;
-        private ToolStripStatusLabel StatusLabel;
+        private ToolStripStatusLabel PicStatusLabel;
         private ToolStripStatusLabel RateStatusLabel;
         private ToolStripStatusLabel FileStatusLabel;
         private System.Windows.Forms.Timer StatusTimer;
