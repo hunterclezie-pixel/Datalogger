@@ -43,7 +43,7 @@
             PicStatusLabel = new ToolStripStatusLabel();
             RateStatusLabel = new ToolStripStatusLabel();
             FileStatusLabel = new ToolStripStatusLabel();
-            StatusTimer = new System.Windows.Forms.Timer(components);
+            SampleTimer = new System.Windows.Forms.Timer(components);
             ToolTip = new ToolTip(components);
             OpenFileDialog = new OpenFileDialog();
             SaveFileDialog = new SaveFileDialog();
@@ -166,6 +166,10 @@
             FileStatusLabel.Size = new Size(150, 20);
             FileStatusLabel.Text = "Current Log Filename";
             // 
+            // SampleTimer
+            // 
+            SampleTimer.Tick += SampleTimer_Tick;
+            // 
             // OpenFileDialog
             // 
             OpenFileDialog.FileName = "openFileDialog1";
@@ -211,7 +215,7 @@
         private ToolStripStatusLabel PicStatusLabel;
         private ToolStripStatusLabel RateStatusLabel;
         private ToolStripStatusLabel FileStatusLabel;
-        private System.Windows.Forms.Timer StatusTimer;
+        private System.Windows.Forms.Timer SampleTimer;
         private ToolTip ToolTip;
         private OpenFileDialog OpenFileDialog;
         private SaveFileDialog SaveFileDialog;

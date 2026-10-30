@@ -15,7 +15,6 @@ namespace Datalogger
         List<DateTime> sampleTimes = new List<DateTime>();
         string logFile = "";
         ToolTip tips = new ToolTip();
-        System.Windows.Forms.Timer sampleTimer = new System.Windows.Forms.Timer();
         int highByte = adcValue >> 8;
         int lowByte = adcValue & 0xFF;
 
@@ -49,6 +48,7 @@ namespace Datalogger
 
         // PIC Connection ---------------------------------------
 
+        // Find PIC Device on Serial Ports
         void FindPIC()
         {
             picConnected = false;
@@ -101,9 +101,10 @@ namespace Datalogger
             PicStatusLabel.Text = "PIC: Disconnected";
         }
 
+        // Close PIC Connection
         void ClosePIC()
         {
-            sampleTimer.Stop();
+            SampleTimer.Stop();
             isLogging = false;
             picConnected = false;
             picWaiting = false;
@@ -117,6 +118,61 @@ namespace Datalogger
         }
 
         // Sampling and ADC Reading -----------------------------
+
+        private void SampleTimer_Tick(object sender, EventArgs e)
+        {
+            if (!picConnected || !isLogging || picWaiting)
+                return;
+
+            try
+            {
+                picWaiting = true;
+
+                // Request AN0
+                byte[] request = { 0x24, 0x41, 0x01, 0x00 };
+
+                picPort.DiscardInBuffer();
+                picPort.Write(request, 0, request.Length);
+
+                // Read ADC Response
+                byte[] response = new byte[6];
+                int count = 0;
+
+                while (count < response.Length)
+                {
+                    count += picPort.Read(response, count,
+                        response.Length - count);
+                }
+
+                // Check Response
+                if (response[0] == 0x24 &&
+                    response[1] == 0x41 &&
+                    response[2] == 0x03 &&
+                    response[3] == 0x00)
+                {
+                    int adcValue = (response[4] << 8) | response[5];
+
+                    if (adcValue >= 0 && adcValue <= 1023)
+                    {
+                        adcValues.Add(adcValue);
+                        sampleTimes.Add(DateTime.Now);
+
+                        DrawGraph();
+                    }
+                }
+            }
+            catch
+            {
+                ClosePIC();
+
+                MessageBox.Show("PIC connection lost.",
+                    "Connection Error");
+            }
+            finally
+            {
+                picWaiting = false;
+            }
+        }
 
         // Graph Drawing ---------------------------------------
 
