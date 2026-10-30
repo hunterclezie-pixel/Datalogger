@@ -1,13 +1,13 @@
-using System.Diagnostics.Metrics;
 using System.IO.Ports;
 
-/* 
-Hunter Clezie 
+/*
+Hunter Clezie
 Fall 2026
 RCET 3371
 Datalogger
 github url: https://github.com/hunterclezie-pixel/Datalogger.git
 */
+
 namespace Datalogger
 {
     public partial class Datalogger : Form
@@ -18,10 +18,20 @@ namespace Datalogger
         bool picConnected = false;
         bool isLogging = false;
         bool picWaiting = false;
+        bool picScanning = false;
+        bool closing = false;
         int sampleRate = 100;
         List<int> adcValues = new List<int>();
         List<DateTime> sampleTimes = new List<DateTime>();
         string logFile = "";
+
+        // PIC Communication Variables
+        byte[] rxBuffer = new byte[11];
+        int rxCount = 0;
+        DateTime replyDeadline = DateTime.MinValue;
+        DateTime nextScan = DateTime.MinValue;
+        DateTime nextSample = DateTime.MinValue;
+        ToolTip tips = new ToolTip();
 
         public Datalogger()
         {
@@ -29,25 +39,26 @@ namespace Datalogger
 
             // Form Setup
             this.Text = "PIC Data Logger";
-
+            StartButton.Enabled = true;
             StopButton.Enabled = false;
-
+            SampleRateComboBox.Items.Clear();
             SampleRateComboBox.Items.AddRange(new string[]
             {
-            "10 Minutes",
-            "5 Minutes",
-            "1 Minute",
-            "30 Seconds",
-            "10 Seconds",
-            "5 Seconds",
-            "1 Second",
-            "500 ms",
-            "200 ms",
-            "100 ms"
+                "10 Minutes",
+                "5 Minutes",
+                "1 Minute",
+                "30 Seconds",
+                "10 Seconds",
+                "5 Seconds",
+                "1 Second",
+                "500 ms",
+                "200 ms",
+                "100 ms"
             });
 
             SampleRateComboBox.SelectedIndex = 9;
 
+            GraphViewComboBox.Items.Clear();
             GraphViewComboBox.Items.Add("Entire History");
             GraphViewComboBox.Items.Add("Last 30 Seconds");
             GraphViewComboBox.SelectedIndex = 0;
@@ -56,97 +67,280 @@ namespace Datalogger
             RateStatusLabel.Text = "Rate: 100 ms";
             FileStatusLabel.Text = "File: None";
 
-            // Button Events
-            StartButton.Click += StartButton_Click;
-            StopButton.Click += StopButton_Click;
-            SaveButton.Click += SaveButton_Click;
-
-            SampleRateComboBox.SelectedIndexChanged += SampleRateComboBox_SelectedIndexChanged;
-            GraphViewComboBox.SelectedIndexChanged += GraphViewComboBox_SelectedIndexChanged;
-
             // Timer Setup
-            SampleTimer.Interval = sampleRate;
+            // Checks communication without blocking the form
+            SampleTimer.Interval = 20;
             SampleTimer.Tick += SampleTimer_Tick;
+            SampleTimer.Start();
 
             // PIC Connection Setup
-            FindPIC();
             this.FormClosing += Datalogger_FormClosing;
+
+            DrawGraph();
         }
 
         // PIC Connection ---------------------------------------
 
-        // Find PIC Device on Serial Ports
-        void FindPIC()
+        // Check if a serial port belongs to the PIC
+        SerialPort TryPort(string portName)
         {
-            picConnected = false;
-            PicStatusLabel.Text = "PIC: Searching...";
+            SerialPort port = null;
 
-            foreach (string portName in SerialPort.GetPortNames())
+            try
             {
-                try
+                port = new SerialPort(portName, 9600, Parity.None, 8, StopBits.One);
+
+                port.ReadTimeout = 50;
+                port.WriteTimeout = 500;
+
+                port.Open();
+
+                // Allow USB adapter to settle
+                Thread.Sleep(100);
+
+                // Try device identification twice
+                for (int attempt = 0; attempt < 2; attempt++)
                 {
-                    picPort = new SerialPort(portName, 9600, Parity.None, 8, StopBits.One);
-                    picPort.ReadTimeout = 500;
-                    picPort.WriteTimeout = 500;
-                    picPort.Open();
+                    if (closing)
+                        break;
 
-                    picPort.DiscardInBuffer();
+                    port.DiscardInBuffer();
 
-                    // Request PIC Device ID
-                    picPort.Write(new byte[] { 0x24, 0x49, 0x00 }, 0, 3);
+                    byte[] request = { 0x24, 0x49, 0x00 };
+                    port.Write(request, 0, request.Length);
 
                     byte[] response = new byte[5];
                     int count = 0;
 
-                    while (count < response.Length)
+                    DateTime timeout = DateTime.Now.AddMilliseconds(500);
+
+                    while (count < response.Length && DateTime.Now < timeout && !closing)
                     {
-                        count += picPort.Read(response, count,
-                            response.Length - count);
+                        try
+                        {
+                            response[count] = (byte)port.ReadByte();
+                            count++;
+                        }
+                        catch (TimeoutException)
+                        {
+                            // Continue waiting until timeout
+                        }
                     }
 
-                    // Verify Device ID
-                    if (response[0] == 0x24 &&
+                    if (count == 5 &&
+                        response[0] == 0x24 &&
                         response[1] == 0x49 &&
                         response[2] == 0x02 &&
                         response[3] == 0x33 &&
                         response[4] == 0x75)
                     {
-                        picConnected = true;
-                        PicStatusLabel.Text = "PIC: Connected (" + portName + ")";
-                        return;
-                    }
+                        // Reject unexpected extra bytes
+                        Thread.Sleep(50);
 
+                        if (port.BytesToRead == 0 && !closing)
+                            return port;
+                    }
+                }
+            }
+            catch
+            {
+                // Try the next available port
+            }
+
+            if (port != null)
+            {
+                try
+                {
+                    port.Close();
+                    port.Dispose();
+                }
+                catch { }
+            }
+
+            return null;
+        }
+
+        // Find PIC Device on Serial Ports
+        SerialPort FindPIC()
+        {
+            try
+            {
+                foreach (string portName in SerialPort.GetPortNames())
+                {
+                    if (closing)
+                        return null;
+
+                    SerialPort found = TryPort(portName);
+
+                    if (found != null)
+                        return found;
+                }
+            }
+            catch
+            {
+                // No available serial ports
+            }
+
+            return null;
+        }
+
+        // Automatically search for PIC
+        async void SearchForPIC()
+        {
+            if (picScanning || picConnected || closing)
+                return;
+
+            picScanning = true;
+            PicStatusLabel.Text = "PIC: Searching...";
+
+            SerialPort found = null;
+
+            try
+            {
+                found = await Task.Run(() => FindPIC());
+            }
+            catch
+            {
+                // Connection search failed
+            }
+
+            picScanning = false;
+
+            if (closing)
+            {
+                if (found != null)
+                {
+                    found.Close();
+                    found.Dispose();
+                }
+
+                return;
+            }
+
+            if (found != null)
+            {
+                if (picPort != null)
+                {
                     picPort.Close();
                     picPort.Dispose();
                 }
-                catch
-                {
-                    if (picPort.IsOpen)
-                        picPort.Close();
-                    picPort.Dispose();
-                }
-            }
 
-            PicStatusLabel.Text = "PIC: Disconnected";
+                picPort = found;
+                picConnected = true;
+                picWaiting = false;
+                rxCount = 0;
+
+                PicStatusLabel.Text =
+                    "PIC: Connected (" + picPort.PortName + ")";
+
+                nextSample = DateTime.Now;
+            }
+            else
+            {
+                PicStatusLabel.Text = "PIC: Disconnected";
+                nextScan = DateTime.Now.AddSeconds(2);
+            }
         }
 
         // Close PIC Connection
         void ClosePIC()
         {
-            SampleTimer.Stop();
-            isLogging = false;
             picConnected = false;
             picWaiting = false;
+            rxCount = 0;
 
-            if (picPort.IsOpen)
-                picPort.Close();
+            try
+            {
+                if (picPort.IsOpen)
+                    picPort.Close();
+            }
+            catch { }
 
             PicStatusLabel.Text = "PIC: Disconnected";
-            StartButton.Enabled = true;
-            StopButton.Enabled = false;
+
+            nextScan = DateTime.Now.AddSeconds(2);
+        }
+
+        // Sampling and ADC Reading -----------------------------
+
+        // Send ADC Request
+        void RequestADC()
+        {
+            if (!picConnected || picWaiting || !picPort.IsOpen)
+                return;
+
+            try
+            {
+                byte[] request = { 0x24, 0x41, 0x01, 0x00 };
+
+                picPort.Write(request, 0, request.Length);
+
+                picWaiting = true;
+                replyDeadline = DateTime.Now.AddMilliseconds(500);
+            }
+            catch
+            {
+                ClosePIC();
+            }
+        }
+
+        // Receive one byte at a time
+        void ReceiveByte(byte value)
+        {
+            // Wait for packet header
+            if (rxCount == 0 && value != 0x24)
+                return;
+
+            rxBuffer[rxCount] = value;
+            rxCount++;
+
+            // Check packet length
+            if (rxCount == 3 && rxBuffer[2] > 8)
+            {
+                rxCount = 0;
+                return;
+            }
+
+            if (rxCount < 3)
+                return;
+
+            int packetLength = rxBuffer[2] + 3;
+
+            if (rxCount < packetLength)
+                return;
+
+            // Check for PIC error packet
+            if (rxBuffer[1] == 0x45)
+            {
+                rxCount = 0;
+                ClosePIC();
+                return;
+            }
+
+            // Check ADC Response
+            if (rxBuffer[1] == 0x41 && rxBuffer[2] == 0x03 && rxBuffer[3] == 0x00 && picWaiting)
+            {
+                int adcValue = (rxBuffer[4] << 8) | rxBuffer[5];
+
+                if (adcValue >= 0 && adcValue <= 1023 && isLogging)
+                {
+                    DateTime time = DateTime.Now;
+                    adcValues.Add(adcValue);
+                    sampleTimes.Add(time);
+
+                    // Automatically save each sample
+                    SaveSample(adcValue, time);
+                    DrawGraph();
+                }
+
+                picWaiting = false;
+            }
+
+            rxCount = 0;
         }
 
         // Graph Drawing ---------------------------------------
+
         void DrawGraph()
         {
             int width = GraphPictureBox.Width;
@@ -170,12 +364,12 @@ namespace Datalogger
             for (int i = 0; i <= 4; i++)
             {
                 int adc = i * 1023 / 4;
-
                 int y = bottom - (int)(adc / 1023.0 * (bottom - top));
-                double voltage = adc * 5.0 / 1023.0;
+
+                double voltage = adc * 5.0 / 1024.0;
+
                 g.DrawLine(Pens.LightGray, left, y, right, y);
-                g.DrawString(adc + " (" + voltage.ToString("F2") + " V)",
-                    this.Font, Brushes.Black, 5, y - 8);
+                g.DrawString(adc + " (" + voltage.ToString("F2") + " V)", this.Font, Brushes.Black, 5, y - 8);
             }
 
             // Draw Graph Data
@@ -188,10 +382,10 @@ namespace Datalogger
                 if (GraphViewComboBox.SelectedIndex == 1)
                     startTime = endTime.AddSeconds(-30);
 
-                double totalTime = (endTime - startTime).TotalMilliseconds;
+                if (endTime <= startTime) 
+                    endTime = startTime.AddSeconds(1);
 
-                if (totalTime <= 0)
-                    totalTime = 1000;
+                double totalTime = (endTime - startTime).TotalMilliseconds;
 
                 // Draw Time Labels
                 for (int i = 0; i <= 5; i++)
@@ -199,8 +393,7 @@ namespace Datalogger
                     int x = left + i * (right - left) / 5;
                     g.DrawLine(Pens.LightGray, x, top, x, bottom);
                     DateTime time = startTime.AddMilliseconds(totalTime * i / 5);
-                    g.DrawString(time.ToString("HH:mm:ss"),
-                        this.Font, Brushes.Black, x - 25, bottom + 5);
+                    g.DrawString(time.ToString("HH:mm:ss"),this.Font, Brushes.Black, x - 25, bottom + 5);
                 }
 
                 // Draw ADC Values
@@ -218,21 +411,23 @@ namespace Datalogger
 
                     // Connect Points
                     if (lastPoint != null)
+                    {
                         g.DrawLine(Pens.Blue, lastPoint.Value, currentPoint);
+                    }
 
                     // Draw Individual Points
                     g.FillEllipse(Brushes.Blue, x - 2, y - 2, 4, 4);
+
                     lastPoint = currentPoint;
                 }
             }
             else
             {
-                g.DrawString("No data yet - press Start",
-                    this.Font, Brushes.Gray, left + 20, top + 20);
+                g.DrawString("No data yet - press Start", this.Font, Brushes.Gray, left + 20, top + 20);
             }
 
             // Draw Graph Border
-            g.DrawRectangle(Pens.Black, left, top, right - left, bottom - top);
+            g.DrawRectangle(Pens.Black,left, top, right - left, bottom - top);
             g.Dispose();
 
             // Update PictureBox
@@ -243,6 +438,35 @@ namespace Datalogger
 
         // Saving and Opening Log Files -------------------------
 
+        // Automatically save one sample to its hourly file
+        void SaveSample(int adcValue, DateTime time)
+        {
+            try
+            {
+                string hour = time.ToString("yyMMddHH");
+
+                logFile = Path.Combine(Application.StartupPath, "log_" + hour + ".log");
+
+                int highByte = adcValue >> 8;
+                int lowByte = adcValue & 0xFF;
+
+                string timestamp = time.ToString("yyMMddHHmmssff");
+                string line = "\"$$AN0\"," +
+                    highByte + "," +
+                    lowByte + "," +
+                    timestamp;
+
+                File.AppendAllText(logFile, line + Environment.NewLine);
+                FileStatusLabel.Text = "File: " + Path.GetFileName(logFile);
+            }
+            catch (Exception ex)
+            {
+                isLogging = false;
+                MessageBox.Show("Error saving data: " + ex.Message, "File Error");
+            }
+        }
+
+        // Save recorded data to a selected file
         void SaveLog()
         {
             if (adcValues.Count == 0)
@@ -251,26 +475,21 @@ namespace Datalogger
                 return;
             }
 
-            try
+            using (SaveFileDialog dialog = new SaveFileDialog())
             {
-                // Group samples by hour
-                var hours = sampleTimes
-                    .Select(time => time.ToString("yyMMddHH"))
-                    .Distinct();
+                dialog.Filter = "Log Files (*.log)|*.log";
+                dialog.FileName = "export_" + DateTime.Now.ToString("yyMMddHHmmss") + ".log";
+                dialog.OverwritePrompt = true;
 
-                foreach (string hour in hours)
+                if (dialog.ShowDialog() != DialogResult.OK)
+                    return;
+
+                try
                 {
-                    logFile = Path.Combine(
-                        Application.StartupPath,
-                        "log_" + hour + ".log");
-
-                    using (StreamWriter writer = new StreamWriter(logFile))
+                    using (StreamWriter writer = new StreamWriter(dialog.FileName))
                     {
                         for (int i = 0; i < adcValues.Count; i++)
                         {
-                            if (sampleTimes[i].ToString("yyMMddHH") != hour)
-                                continue;
-
                             int highByte = adcValues[i] >> 8;
                             int lowByte = adcValues[i] & 0xFF;
 
@@ -283,89 +502,96 @@ namespace Datalogger
                                 timestamp);
                         }
                     }
+
+                    FileStatusLabel.Text = "File: " + Path.GetFileName(dialog.FileName);
+
+                    MessageBox.Show("Data saved successfully!");
                 }
-
-                FileStatusLabel.Text = "File: " +
-                    Path.GetFileName(logFile);
-
-                MessageBox.Show("Data saved successfully!");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error saving file: " + ex.Message);
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        "Error saving file: " + ex.Message);
+                }
             }
         }
 
+        // Open saved log file
         void OpenLog()
         {
+            if (isLogging)
+            {
+                MessageBox.Show(
+                    "Stop logging before opening a file.");
+                return;
+            }
+
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
                 dialog.Filter = "Log Files (*.log)|*.log";
 
-                if (dialog.ShowDialog() == DialogResult.OK)
+                if (dialog.ShowDialog() != DialogResult.OK)
+                    return;
+
+                try
                 {
-                    try
+                    string[] lines = File.ReadAllLines(dialog.FileName);
+
+                    List<int> newValues = new List<int>();
+                    List<DateTime> newTimes = new List<DateTime>();
+
+                    foreach (string line in lines)
                     {
-                        string[] lines = File.ReadAllLines(dialog.FileName);
+                        string[] data = line.Split(',');
 
-                        adcValues.Clear();
-                        sampleTimes.Clear();
+                        if (data.Length != 4)
+                            continue;
 
-                        foreach (string line in lines)
+                        if (data[0].Trim('"') != "$$AN0")
+                            continue;
+
+                        int highByte = int.Parse(data[1]);
+                        int lowByte = int.Parse(data[2]);
+
+                        int adcValue = (highByte << 8) | lowByte;
+
+                        DateTime time = DateTime.ParseExact(data[3], "yyMMddHHmmssff", null);
+
+                        if (adcValue >= 0 && adcValue <= 1023)
                         {
-                            string[] data = line.Split(',');
-
-                            if (data.Length != 4)
-                                continue;
-
-                            if (data[0].Trim('"') != "$$AN0")
-                                continue;
-
-                            int highByte = int.Parse(data[1]);
-                            int lowByte = int.Parse(data[2]);
-
-                            int adcValue = (highByte << 8) | lowByte;
-
-                            DateTime time = DateTime.ParseExact(
-                                data[3], "yyMMddHHmmssff",
-                                System.Globalization.CultureInfo.InvariantCulture);
-
-                            adcValues.Add(adcValue);
-                            sampleTimes.Add(time);
+                            newValues.Add(adcValue);
+                            newTimes.Add(time);
                         }
-
-                        logFile = dialog.FileName;
-                        FileStatusLabel.Text = "File: " +
-                            Path.GetFileName(logFile);
-
-                        DrawGraph();
                     }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("Error opening file: " + ex.Message);
-                    }
+
+                    adcValues = newValues;
+                    sampleTimes = newTimes;
+                    logFile = dialog.FileName;
+
+                    FileStatusLabel.Text = "File: " + Path.GetFileName(logFile);
+
+                    DrawGraph();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error opening file: " + ex.Message);
                 }
             }
         }
 
-        // Event Handlers below here ---------------------------------------
+        // Event Handlers below here -----------------------------
 
         private void StartButton_Click(object sender, EventArgs e)
         {
             if (!picConnected)
             {
-                FindPIC();
-
-                if (!picConnected)
-                {
-                    MessageBox.Show("PIC not connected.");
-                    return;
-                }
+                MessageBox.Show(
+                    "PIC not connected. Searching for device.");
+                SearchForPIC();
+                return;
             }
 
             isLogging = true;
-            SampleTimer.Start();
-
+            nextSample = DateTime.Now;
             StartButton.Enabled = false;
             StopButton.Enabled = true;
         }
@@ -373,8 +599,6 @@ namespace Datalogger
         private void StopButton_Click(object sender, EventArgs e)
         {
             isLogging = false;
-            SampleTimer.Stop();
-
             StartButton.Enabled = true;
             StopButton.Enabled = false;
         }
@@ -403,16 +627,13 @@ namespace Datalogger
                 case 7: sampleRate = 500; break;
                 case 8: sampleRate = 200; break;
                 case 9: sampleRate = 100; break;
-
                 default:
-                    MessageBox.Show("Invalid sample rate.");
-                    return;
+                return;
             }
 
-            SampleTimer.Interval = sampleRate;
+            RateStatusLabel.Text = "Rate: " + SampleRateComboBox.Text;
 
-            RateStatusLabel.Text =
-                "Rate: " + SampleRateComboBox.Text;
+            nextSample = DateTime.Now.AddMilliseconds(sampleRate);
         }
 
         private void GraphViewComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -420,69 +641,77 @@ namespace Datalogger
             DrawGraph();
         }
 
+        private void GraphPictureBox_Resize(object sender, EventArgs e)
+        {
+            DrawGraph();
+        }
+
+        // Timer checks for incoming data and sends requests
         private void SampleTimer_Tick(object sender, EventArgs e)
         {
-            if (!picConnected || !isLogging || picWaiting)
+            if (closing)
                 return;
+
+            // Search for PIC if disconnected
+            if (!picConnected)
+            {
+                if (!picScanning && DateTime.Now >= nextScan)
+                    SearchForPIC();
+                return;
+            }
 
             try
             {
-                picWaiting = true;
-
-                // Request AN0
-                byte[] request = { 0x24, 0x41, 0x01, 0x00 };
-
-                picPort.DiscardInBuffer();
-                picPort.Write(request, 0, request.Length);
-
-                // Read ADC Response
-                byte[] response = new byte[6];
-                int count = 0;
-
-                while (count < response.Length)
+                if (!picPort.IsOpen)
                 {
-                    count += picPort.Read(response, count,
-                        response.Length - count);
+                    ClosePIC();
+                    return;
                 }
 
-                // Check Response
-                if (response[0] == 0x24 &&
-                    response[1] == 0x41 &&
-                    response[2] == 0x03 &&
-                    response[3] == 0x00)
+                // Read available bytes without blocking
+                while (picPort.BytesToRead > 0 && picConnected)
                 {
-                    int adcValue = (response[4] << 8) | response[5];
+                    byte value = (byte)picPort.ReadByte();
+                    ReceiveByte(value);
+                }
 
-                    if (adcValue >= 0 && adcValue <= 1023)
-                    {
-                        adcValues.Add(adcValue);
-                        sampleTimes.Add(DateTime.Now);
+                // Check for response timeout
+                if (picWaiting && DateTime.Now > replyDeadline)
+                {
+                    picWaiting = false;
+                    rxCount = 0;
+                    ClosePIC();
+                    return;
+                }
 
-                        DrawGraph();
-                    }
+                // Send ADC request at selected interval
+                if (isLogging && !picWaiting && DateTime.Now >= nextSample)
+                {
+                    nextSample = DateTime.Now.AddMilliseconds(sampleRate);
+                    RequestADC();
                 }
             }
             catch
             {
                 ClosePIC();
-
-                MessageBox.Show("PIC connection lost.",
-                    "Connection Error");
-            }
-            finally
-            {
-                picWaiting = false;
             }
         }
 
         private void Datalogger_FormClosing(object sender, FormClosingEventArgs e)
         {
+            closing = true;
+            isLogging = false;
             SampleTimer.Stop();
 
-            if (picPort.IsOpen)
-                picPort.Close();
-
-            picPort.Dispose();
+            try
+            {
+                if (picPort.IsOpen)
+                {
+                    picPort.Close();
+                }
+                picPort.Dispose();
+            }
+            catch { }
         }
 
         private void OpenContextMenu_Click(object sender, EventArgs e)

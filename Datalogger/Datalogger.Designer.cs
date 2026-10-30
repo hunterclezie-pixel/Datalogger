@@ -30,7 +30,14 @@
         {
             components = new System.ComponentModel.Container();
             MenuStrip = new MenuStrip();
+            FileMenuStrip = new ToolStripMenuItem();
+            aboutToolStripMenuItem = new ToolStripMenuItem();
             GraphicsContextMenu = new ContextMenuStrip(components);
+            StartContextMenu = new ToolStripMenuItem();
+            StopContextMenu = new ToolStripMenuItem();
+            SaveContextMenu = new ToolStripMenuItem();
+            OpenContextMenu = new ToolStripMenuItem();
+            ExitContextMenu = new ToolStripMenuItem();
             SampleRateComboBox = new ComboBox();
             GraphViewComboBox = new ComboBox();
             SaveButton = new Button();
@@ -48,13 +55,6 @@
             OpenFileDialog = new OpenFileDialog();
             SaveFileDialog = new SaveFileDialog();
             ExitButton = new Button();
-            FileMenuStrip = new ToolStripMenuItem();
-            aboutToolStripMenuItem = new ToolStripMenuItem();
-            StartContextMenu = new ToolStripMenuItem();
-            StopContextMenu = new ToolStripMenuItem();
-            SaveContextMenu = new ToolStripMenuItem();
-            OpenContextMenu = new ToolStripMenuItem();
-            ExitContextMenu = new ToolStripMenuItem();
             MenuStrip.SuspendLayout();
             GraphicsContextMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)GraphPictureBox).BeginInit();
@@ -71,12 +71,55 @@
             MenuStrip.TabIndex = 0;
             MenuStrip.Text = "menuStrip1";
             // 
+            // FileMenuStrip
+            // 
+            FileMenuStrip.Name = "FileMenuStrip";
+            FileMenuStrip.Size = new Size(46, 24);
+            FileMenuStrip.Text = "File";
+            // 
+            // aboutToolStripMenuItem
+            // 
+            aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            aboutToolStripMenuItem.Size = new Size(64, 24);
+            aboutToolStripMenuItem.Text = "About";
+            // 
             // GraphicsContextMenu
             // 
             GraphicsContextMenu.ImageScalingSize = new Size(20, 20);
             GraphicsContextMenu.Items.AddRange(new ToolStripItem[] { StartContextMenu, StopContextMenu, SaveContextMenu, OpenContextMenu, ExitContextMenu });
             GraphicsContextMenu.Name = "GraphicsContextMenu";
-            GraphicsContextMenu.Size = new Size(211, 152);
+            GraphicsContextMenu.Size = new Size(115, 124);
+            // 
+            // StartContextMenu
+            // 
+            StartContextMenu.Name = "StartContextMenu";
+            StartContextMenu.Size = new Size(114, 24);
+            StartContextMenu.Text = "Start";
+            // 
+            // StopContextMenu
+            // 
+            StopContextMenu.Name = "StopContextMenu";
+            StopContextMenu.Size = new Size(114, 24);
+            StopContextMenu.Text = "Stop";
+            // 
+            // SaveContextMenu
+            // 
+            SaveContextMenu.Name = "SaveContextMenu";
+            SaveContextMenu.Size = new Size(114, 24);
+            SaveContextMenu.Text = "Save";
+            // 
+            // OpenContextMenu
+            // 
+            OpenContextMenu.Name = "OpenContextMenu";
+            OpenContextMenu.Size = new Size(114, 24);
+            OpenContextMenu.Text = "Open";
+            OpenContextMenu.Click += OpenContextMenu_Click;
+            // 
+            // ExitContextMenu
+            // 
+            ExitContextMenu.Name = "ExitContextMenu";
+            ExitContextMenu.Size = new Size(114, 24);
+            ExitContextMenu.Text = "Exit";
             // 
             // SampleRateComboBox
             // 
@@ -85,6 +128,7 @@
             SampleRateComboBox.Name = "SampleRateComboBox";
             SampleRateComboBox.Size = new Size(151, 28);
             SampleRateComboBox.TabIndex = 2;
+            ToolTip.SetToolTip(SampleRateComboBox, "Select sampling rate");
             // 
             // GraphViewComboBox
             // 
@@ -93,6 +137,7 @@
             GraphViewComboBox.Name = "GraphViewComboBox";
             GraphViewComboBox.Size = new Size(151, 28);
             GraphViewComboBox.TabIndex = 3;
+            ToolTip.SetToolTip(GraphViewComboBox, "Select graph view");
             // 
             // SaveButton
             // 
@@ -134,6 +179,7 @@
             GraphPictureBox.Size = new Size(619, 333);
             GraphPictureBox.TabIndex = 7;
             GraphPictureBox.TabStop = false;
+            ToolTip.SetToolTip(GraphPictureBox, "Displays recorded ADC values");
             // 
             // ADCValueLabel
             // 
@@ -198,49 +244,6 @@
             ExitButton.Text = "Exit";
             ExitButton.UseVisualStyleBackColor = true;
             ExitButton.Click += ExitButton_Click;
-            // 
-            // FileMenuStrip
-            // 
-            FileMenuStrip.Name = "FileMenuStrip";
-            FileMenuStrip.Size = new Size(46, 24);
-            FileMenuStrip.Text = "File";
-            // 
-            // aboutToolStripMenuItem
-            // 
-            aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            aboutToolStripMenuItem.Size = new Size(64, 24);
-            aboutToolStripMenuItem.Text = "About";
-            // 
-            // StartContextMenu
-            // 
-            StartContextMenu.Name = "StartContextMenu";
-            StartContextMenu.Size = new Size(210, 24);
-            StartContextMenu.Text = "Start";
-            // 
-            // StopContextMenu
-            // 
-            StopContextMenu.Name = "StopContextMenu";
-            StopContextMenu.Size = new Size(210, 24);
-            StopContextMenu.Text = "Stop";
-            // 
-            // SaveContextMenu
-            // 
-            SaveContextMenu.Name = "SaveContextMenu";
-            SaveContextMenu.Size = new Size(210, 24);
-            SaveContextMenu.Text = "Save";
-            // 
-            // OpenContextMenu
-            // 
-            OpenContextMenu.Name = "OpenContextMenu";
-            OpenContextMenu.Size = new Size(210, 24);
-            OpenContextMenu.Text = "Open";
-            OpenContextMenu.Click += OpenContextMenu_Click;
-            // 
-            // ExitContextMenu
-            // 
-            ExitContextMenu.Name = "ExitContextMenu";
-            ExitContextMenu.Size = new Size(210, 24);
-            ExitContextMenu.Text = "Exit";
             // 
             // Datalogger
             // 
