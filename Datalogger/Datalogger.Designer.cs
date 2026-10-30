@@ -90,6 +90,7 @@
             SaveButton.Size = new Size(105, 51);
             SaveButton.TabIndex = 4;
             SaveButton.Text = "Save";
+            ToolTip.SetToolTip(SaveButton, "Save collected data");
             SaveButton.UseVisualStyleBackColor = true;
             SaveButton.Click += SaveButton_Click;
             // 
@@ -100,6 +101,7 @@
             StopButton.Size = new Size(105, 51);
             StopButton.TabIndex = 5;
             StopButton.Text = "Stop";
+            ToolTip.SetToolTip(StopButton, "Stop collecting ADC data");
             StopButton.UseVisualStyleBackColor = true;
             StopButton.Click += StopButton_Click;
             // 
@@ -110,6 +112,7 @@
             StartButton.Size = new Size(105, 51);
             StartButton.TabIndex = 6;
             StartButton.Text = "Start";
+            ToolTip.SetToolTip(StartButton, "Start collecting ADC data");
             StartButton.UseVisualStyleBackColor = true;
             StartButton.Click += StartButton_Click;
             // 

@@ -20,7 +20,8 @@ namespace Datalogger
             InitializeComponent();
 
             // Form Setup
-            StartButton.Enabled = true;
+            this.Text = "PIC Data Logger";
+
             StopButton.Enabled = false;
 
             SampleRateComboBox.Items.AddRange(new string[]
@@ -34,19 +35,26 @@ namespace Datalogger
             "1 Second",
             "500 ms",
             "200 ms",
-            "100 ms"});
+            "100 ms"
+            });
 
-            SampleRateComboBox.DropDownStyle = ComboBoxStyle.DropDownList; // only valid rates can be chosen
-            GraphViewComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            GraphViewComboBox.Items.AddRange(new string[] { "Entire History", "Last 30 Seconds" });
+            SampleRateComboBox.SelectedIndex = 9;
+
+            GraphViewComboBox.Items.Add("Entire History");
+            GraphViewComboBox.Items.Add("Last 30 Seconds");
             GraphViewComboBox.SelectedIndex = 0;
-            SampleRateComboBox.SelectedIndex = 6; // default 1 second
 
-            GraphPictureBox.Resize += (s, e) => DrawGraph();
-            FileStatusLabel.Text = "File: log_" + DateTime.Now.ToString("yyMMddHH") + ".log";
-            DrawGraph(); // show empty axes right away
+            PicStatusLabel.Text = "PIC: Searching...";
+            RateStatusLabel.Text = "Rate: 100 ms";
+            FileStatusLabel.Text = "File: None";
 
             // Button Events
+            StartButton.Click += StartButton_Click;
+            StopButton.Click += StopButton_Click;
+            SaveButton.Click += SaveButton_Click;
+
+            SampleRateComboBox.SelectedIndexChanged += SampleRateComboBox_SelectedIndexChanged;
+            GraphViewComboBox.SelectedIndexChanged += GraphViewComboBox_SelectedIndexChanged;
 
             // Timer Setup
             SampleTimer.Interval = sampleRate;
@@ -186,72 +194,98 @@ namespace Datalogger
         }
 
         // Graph Drawing ---------------------------------------
-
         void DrawGraph()
         {
-            if (GraphPictureBox.Width <= 0 ||
-                GraphPictureBox.Height <= 0)
+            int width = GraphPictureBox.Width;
+            int height = GraphPictureBox.Height;
+
+            if (width < 150 || height < 100)
                 return;
 
-            Bitmap graph = new Bitmap(
-                GraphPictureBox.Width,
-                GraphPictureBox.Height);
+            Bitmap graph = new Bitmap(width, height);
+            Graphics g = Graphics.FromImage(graph);
 
-            using (Graphics g = Graphics.FromImage(graph))
+            g.Clear(Color.White);
+
+            // Graph Size
+            int left = 95;
+            int right = width - 15;
+            int top = 10;
+            int bottom = height - 40;
+
+            // Draw Graph Lines and Voltage Labels
+            for (int i = 0; i <= 4; i++)
             {
-                g.Clear(Color.White);
+                int adc = i * 256;
 
-                int width = graph.Width;
-                int height = graph.Height;
+                if (adc > 1023)
+                    adc = 1023;
 
-                // Draw Graph Axes
-                g.DrawLine(Pens.Black, 35, 10, 35, height - 25);
-                g.DrawLine(Pens.Black, 35, height - 25,
-                    width - 10, height - 25);
-
-                if (adcValues.Count > 1 && width > 50 && height > 40)
-                {
-                    DateTime endTime = sampleTimes.Last();
-                    DateTime startTime = sampleTimes.First();
-
-                    // Last 30 Seconds View
-                    if (GraphViewComboBox.SelectedIndex == 1)
-                        startTime = endTime.AddSeconds(-30);
-
-                    double totalTime =
-                        (endTime - startTime).TotalMilliseconds;
-
-                    if (totalTime <= 0)
-                        totalTime = 1;
-
-                    Point? lastPoint = null;
-
-                    for (int i = 0; i < adcValues.Count; i++)
-                    {
-                        if (sampleTimes[i] < startTime)
-                            continue;
-
-                        double elapsed =
-                            (sampleTimes[i] - startTime).TotalMilliseconds;
-
-                        int x = 35 + (int)(elapsed / totalTime *
-                            (width - 45));
-
-                        int y = height - 25 -
-                            (int)(adcValues[i] / 1023.0 *
-                            (height - 35));
-
-                        Point currentPoint = new Point(x, y);
-
-                        if (lastPoint != null)
-                            g.DrawLine(Pens.Blue,
-                                lastPoint.Value, currentPoint);
-
-                        lastPoint = currentPoint;
-                    }
-                }
+                int y = bottom - (int)(adc / 1023.0 * (bottom - top));
+                double voltage = adc * 5.0 / 1023.0;
+                g.DrawLine(Pens.LightGray, left, y, right, y);
+                g.DrawString(adc + " (" + voltage.ToString("F2") + " V)",
+                    this.Font, Brushes.Black, 5, y - 8);
             }
 
+            // Draw Graph Data
+            if (adcValues.Count > 0)
+            {
+                DateTime startTime = sampleTimes[0];
+                DateTime endTime = sampleTimes[sampleTimes.Count - 1];
+
+                // Last 30 Seconds View
+                if (GraphViewComboBox.SelectedIndex == 1)
+                    startTime = endTime.AddSeconds(-30);
+
+                double totalTime = (endTime - startTime).TotalMilliseconds;
+
+                if (totalTime <= 0)
+                    totalTime = 1000;
+
+                // Draw Time Labels
+                for (int i = 0; i <= 5; i++)
+                {
+                    int x = left + i * (right - left) / 5;
+                    g.DrawLine(Pens.LightGray, x, top, x, bottom);
+                    DateTime time = startTime.AddMilliseconds(totalTime * i / 5);
+                    g.DrawString(time.ToString("HH:mm:ss"),
+                        this.Font, Brushes.Black, x - 25, bottom + 5);
+                }
+
+                // Draw ADC Values
+                Point? lastPoint = null;
+
+                for (int i = 0; i < adcValues.Count; i++)
+                {
+                    if (sampleTimes[i] < startTime)
+                        continue;
+
+                    int x = left + (int)((sampleTimes[i] - startTime).TotalMilliseconds / totalTime * (right - left));
+                    int y = bottom - (int)(adcValues[i] / 1023.0 * (bottom - top));
+
+                    Point currentPoint = new Point(x, y);
+
+                    // Connect Points
+                    if (lastPoint != null)
+                        g.DrawLine(Pens.Blue, lastPoint.Value, currentPoint);
+
+                    // Draw Individual Points
+                    g.FillEllipse(Brushes.Blue, x - 2, y - 2, 4, 4);
+                    lastPoint = currentPoint;
+                }
+            }
+            else
+            {
+                g.DrawString("No data yet - press Start",
+                    this.Font, Brushes.Gray, left + 20, top + 20);
+            }
+
+            // Draw Graph Border
+            g.DrawRectangle(Pens.Black, left, top, right - left, bottom - top);
+            g.Dispose();
+
+            // Update PictureBox
             Image oldGraph = GraphPictureBox.Image;
             GraphPictureBox.Image = graph;
             oldGraph?.Dispose();
