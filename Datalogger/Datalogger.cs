@@ -14,21 +14,47 @@ namespace Datalogger
         List<int> adcValues = new List<int>();
         List<DateTime> sampleTimes = new List<DateTime>();
         string logFile = "";
-        ToolTip tips = new ToolTip();
-        int highByte = adcValue >> 8;
-        int lowByte = adcValue & 0xFF;
 
         public Datalogger()
         {
             InitializeComponent();
 
             // Form Setup
+            StartButton.Enabled = true;
+            StopButton.Enabled = false;
+
+            SampleRateComboBox.Items.AddRange(new string[]
+            {
+            "10 Minutes",
+            "5 Minutes",
+            "1 Minute",
+            "30 Seconds",
+            "10 Seconds",
+            "5 Seconds",
+            "1 Second",
+            "500 ms",
+            "200 ms",
+            "100 ms"});
+
+            SampleRateComboBox.DropDownStyle = ComboBoxStyle.DropDownList; // only valid rates can be chosen
+            GraphViewComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            GraphViewComboBox.Items.AddRange(new string[] { "Entire History", "Last 30 Seconds" });
+            GraphViewComboBox.SelectedIndex = 0;
+            SampleRateComboBox.SelectedIndex = 6; // default 1 second
+
+            GraphPictureBox.Resize += (s, e) => DrawGraph();
+            FileStatusLabel.Text = "File: log_" + DateTime.Now.ToString("yyMMddHH") + ".log";
+            DrawGraph(); // show empty axes right away
 
             // Button Events
 
             // Timer Setup
+            SampleTimer.Interval = sampleRate;
+            SampleTimer.Tick += SampleTimer_Tick;
 
             // PIC Connection Setup
+            FindPIC();
+            this.FormClosing += Datalogger_FormClosing;
         }
 
         // PIC Connection ---------------------------------------
@@ -43,7 +69,7 @@ namespace Datalogger
             {
                 try
                 {
-                    picPort = new SerialPort(portName, 9600);
+                    picPort = new SerialPort(portName, 9600, Parity.None, 8, StopBits.One);
                     picPort.ReadTimeout = 500;
                     picPort.WriteTimeout = 500;
                     picPort.Open();
@@ -411,5 +437,15 @@ namespace Datalogger
         }
 
         // Form Closing ----------------------------------------
+
+        void Datalogger_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            SampleTimer.Stop();
+
+            if (picPort.IsOpen)
+                picPort.Close();
+
+            picPort.Dispose();
+        }
     }
 }
