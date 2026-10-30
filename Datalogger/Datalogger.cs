@@ -176,6 +176,76 @@ namespace Datalogger
 
         // Graph Drawing ---------------------------------------
 
+        void DrawGraph()
+        {
+            if (GraphPictureBox.Width <= 0 ||
+                GraphPictureBox.Height <= 0)
+                return;
+
+            Bitmap graph = new Bitmap(
+                GraphPictureBox.Width,
+                GraphPictureBox.Height);
+
+            using (Graphics g = Graphics.FromImage(graph))
+            {
+                g.Clear(Color.White);
+
+                int width = graph.Width;
+                int height = graph.Height;
+
+                // Draw Graph Axes
+                g.DrawLine(Pens.Black, 35, 10, 35, height - 25);
+                g.DrawLine(Pens.Black, 35, height - 25,
+                    width - 10, height - 25);
+
+                if (adcValues.Count > 1 && width > 50 && height > 40)
+                {
+                    DateTime endTime = sampleTimes.Last();
+                    DateTime startTime = sampleTimes.First();
+
+                    // Last 30 Seconds View
+                    if (GraphViewComboBox.SelectedIndex == 1)
+                        startTime = endTime.AddSeconds(-30);
+
+                    double totalTime =
+                        (endTime - startTime).TotalMilliseconds;
+
+                    if (totalTime <= 0)
+                        totalTime = 1;
+
+                    Point? lastPoint = null;
+
+                    for (int i = 0; i < adcValues.Count; i++)
+                    {
+                        if (sampleTimes[i] < startTime)
+                            continue;
+
+                        double elapsed =
+                            (sampleTimes[i] - startTime).TotalMilliseconds;
+
+                        int x = 35 + (int)(elapsed / totalTime *
+                            (width - 45));
+
+                        int y = height - 25 -
+                            (int)(adcValues[i] / 1023.0 *
+                            (height - 35));
+
+                        Point currentPoint = new Point(x, y);
+
+                        if (lastPoint != null)
+                            g.DrawLine(Pens.Blue,
+                                lastPoint.Value, currentPoint);
+
+                        lastPoint = currentPoint;
+                    }
+                }
+            }
+
+            Image oldGraph = GraphPictureBox.Image;
+            GraphPictureBox.Image = graph;
+            oldGraph?.Dispose();
+        }
+
         // Saving and Opening Log Files -------------------------
 
         // Button Events ---------------------------------------

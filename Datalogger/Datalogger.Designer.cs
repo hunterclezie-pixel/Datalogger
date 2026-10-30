@@ -32,7 +32,7 @@
             MenuStrip = new MenuStrip();
             GraphicsContextMenu = new ContextMenuStrip(components);
             SampleRateComboBox = new ComboBox();
-            GraphicsViewComboBox = new ComboBox();
+            GraphViewComboBox = new ComboBox();
             SaveButton = new Button();
             StopButton = new Button();
             StartButton = new Button();
@@ -74,13 +74,13 @@
             SampleRateComboBox.Size = new Size(151, 28);
             SampleRateComboBox.TabIndex = 2;
             // 
-            // GraphicsViewComboBox
+            // GraphViewComboBox
             // 
-            GraphicsViewComboBox.FormattingEnabled = true;
-            GraphicsViewComboBox.Location = new Point(12, 60);
-            GraphicsViewComboBox.Name = "GraphicsViewComboBox";
-            GraphicsViewComboBox.Size = new Size(151, 28);
-            GraphicsViewComboBox.TabIndex = 3;
+            GraphViewComboBox.FormattingEnabled = true;
+            GraphViewComboBox.Location = new Point(12, 60);
+            GraphViewComboBox.Name = "GraphViewComboBox";
+            GraphViewComboBox.Size = new Size(151, 28);
+            GraphViewComboBox.TabIndex = 3;
             // 
             // SaveButton
             // 
@@ -186,7 +186,7 @@
             Controls.Add(StartButton);
             Controls.Add(StopButton);
             Controls.Add(SaveButton);
-            Controls.Add(GraphicsViewComboBox);
+            Controls.Add(GraphViewComboBox);
             Controls.Add(SampleRateComboBox);
             Controls.Add(MenuStrip);
             MainMenuStrip = MenuStrip;
@@ -204,7 +204,7 @@
         private MenuStrip MenuStrip;
         private ContextMenuStrip GraphicsContextMenu;
         private ComboBox SampleRateComboBox;
-        private ComboBox GraphicsViewComboBox;
+        private ComboBox GraphViewComboBox;
         private Button SaveButton;
         private Button StopButton;
         private Button StartButton;
