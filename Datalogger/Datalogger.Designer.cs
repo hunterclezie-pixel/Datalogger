@@ -47,6 +47,7 @@
             ToolTip = new ToolTip(components);
             OpenFileDialog = new OpenFileDialog();
             SaveFileDialog = new SaveFileDialog();
+            ExitButton = new Button();
             ((System.ComponentModel.ISupportInitialize)GraphPictureBox).BeginInit();
             StatusStrip.SuspendLayout();
             SuspendLayout();
@@ -84,7 +85,7 @@
             // 
             // SaveButton
             // 
-            SaveButton.Location = new Point(683, 374);
+            SaveButton.Location = new Point(572, 370);
             SaveButton.Name = "SaveButton";
             SaveButton.Size = new Size(105, 51);
             SaveButton.TabIndex = 4;
@@ -94,7 +95,7 @@
             // 
             // StopButton
             // 
-            StopButton.Location = new Point(572, 374);
+            StopButton.Location = new Point(461, 370);
             StopButton.Name = "StopButton";
             StopButton.Size = new Size(105, 51);
             StopButton.TabIndex = 5;
@@ -104,7 +105,7 @@
             // 
             // StartButton
             // 
-            StartButton.Location = new Point(461, 374);
+            StartButton.Location = new Point(350, 370);
             StartButton.Name = "StartButton";
             StartButton.Size = new Size(105, 51);
             StartButton.TabIndex = 6;
@@ -116,7 +117,7 @@
             // 
             GraphPictureBox.Location = new Point(169, 27);
             GraphPictureBox.Name = "GraphPictureBox";
-            GraphPictureBox.Size = new Size(619, 341);
+            GraphPictureBox.Size = new Size(619, 337);
             GraphPictureBox.TabIndex = 7;
             GraphPictureBox.TabStop = false;
             // 
@@ -174,11 +175,22 @@
             // 
             OpenFileDialog.FileName = "openFileDialog1";
             // 
+            // ExitButton
+            // 
+            ExitButton.Location = new Point(683, 370);
+            ExitButton.Name = "ExitButton";
+            ExitButton.Size = new Size(105, 51);
+            ExitButton.TabIndex = 11;
+            ExitButton.Text = "Exit";
+            ExitButton.UseVisualStyleBackColor = true;
+            ExitButton.Click += ExitButton_Click;
+            // 
             // Datalogger
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(ExitButton);
             Controls.Add(StatusStrip);
             Controls.Add(SampleCountLabel);
             Controls.Add(ADCValueLabel);
@@ -219,5 +231,6 @@
         private ToolTip ToolTip;
         private OpenFileDialog OpenFileDialog;
         private SaveFileDialog SaveFileDialog;
+        private Button ExitButton;
     }
 }

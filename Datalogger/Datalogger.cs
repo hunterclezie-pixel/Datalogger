@@ -31,21 +31,6 @@ namespace Datalogger
             // PIC Connection Setup
         }
 
-        private void StartButton_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void StopButton_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void SaveButton_Click(object sender, EventArgs e)
-        {
-
-        }
-
         // PIC Connection ---------------------------------------
 
         // Find PIC Device on Serial Ports
@@ -248,7 +233,133 @@ namespace Datalogger
 
         // Saving and Opening Log Files -------------------------
 
+        void SaveLog()
+        {
+            if (adcValues.Count == 0)
+            {
+                MessageBox.Show("No data to save.");
+                return;
+            }
+
+            try
+            {
+                // Group samples by hour
+                var hours = sampleTimes
+                    .Select(time => time.ToString("yyMMddHH"))
+                    .Distinct();
+
+                foreach (string hour in hours)
+                {
+                    logFile = Path.Combine(
+                        Application.StartupPath,
+                        "log_" + hour + ".log");
+
+                    using (StreamWriter writer = new StreamWriter(logFile))
+                    {
+                        for (int i = 0; i < adcValues.Count; i++)
+                        {
+                            if (sampleTimes[i].ToString("yyMMddHH") != hour)
+                                continue;
+
+                            int highByte = adcValues[i] >> 8;
+                            int lowByte = adcValues[i] & 0xFF;
+
+                            string timestamp =
+                                sampleTimes[i].ToString("yyMMddHHmmssff");
+
+                            writer.WriteLine("\"$$AN0\"," +
+                                highByte + "," +
+                                lowByte + "," +
+                                timestamp);
+                        }
+                    }
+                }
+
+                FileStatusLabel.Text = "File: " +
+                    Path.GetFileName(logFile);
+
+                MessageBox.Show("Data saved successfully!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error saving file: " + ex.Message);
+            }
+        }
+
+        void OpenLog()
+        {
+            using (OpenFileDialog dialog = new OpenFileDialog())
+            {
+                dialog.Filter = "Log Files (*.log)|*.log";
+
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        string[] lines = File.ReadAllLines(dialog.FileName);
+
+                        adcValues.Clear();
+                        sampleTimes.Clear();
+
+                        foreach (string line in lines)
+                        {
+                            string[] data = line.Split(',');
+
+                            if (data.Length != 4)
+                                continue;
+
+                            if (data[0].Trim('"') != "$$AN0")
+                                continue;
+
+                            int highByte = int.Parse(data[1]);
+                            int lowByte = int.Parse(data[2]);
+
+                            int adcValue = (highByte << 8) | lowByte;
+
+                            DateTime time = DateTime.ParseExact(
+                                data[3], "yyMMddHHmmssff",
+                                System.Globalization.CultureInfo.InvariantCulture);
+
+                            adcValues.Add(adcValue);
+                            sampleTimes.Add(time);
+                        }
+
+                        logFile = dialog.FileName;
+                        FileStatusLabel.Text = "File: " +
+                            Path.GetFileName(logFile);
+
+                        DrawGraph();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error opening file: " + ex.Message);
+                    }
+                }
+            }
+        }
+
         // Button Events ---------------------------------------
+
+        private void StartButton_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void StopButton_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+
+        }
+
+
+        private void ExitButton_Click(object sender, EventArgs e)
+        {
+
+        }
 
         // Form Closing ----------------------------------------
     }
