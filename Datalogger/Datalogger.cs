@@ -109,11 +109,13 @@ namespace Datalogger
                     }
 
                     picPort.Close();
+                    picPort.Dispose();
                 }
                 catch
                 {
                     if (picPort.IsOpen)
                         picPort.Close();
+                        picPort.Dispose();
                 }
             }
 
@@ -134,63 +136,6 @@ namespace Datalogger
             PicStatusLabel.Text = "PIC: Disconnected";
             StartButton.Enabled = true;
             StopButton.Enabled = false;
-        }
-
-        // Sampling and ADC Reading -----------------------------
-
-        private void SampleTimer_Tick(object sender, EventArgs e)
-        {
-            if (!picConnected || !isLogging || picWaiting)
-                return;
-
-            try
-            {
-                picWaiting = true;
-
-                // Request AN0
-                byte[] request = { 0x24, 0x41, 0x01, 0x00 };
-
-                picPort.DiscardInBuffer();
-                picPort.Write(request, 0, request.Length);
-
-                // Read ADC Response
-                byte[] response = new byte[6];
-                int count = 0;
-
-                while (count < response.Length)
-                {
-                    count += picPort.Read(response, count,
-                        response.Length - count);
-                }
-
-                // Check Response
-                if (response[0] == 0x24 &&
-                    response[1] == 0x41 &&
-                    response[2] == 0x03 &&
-                    response[3] == 0x00)
-                {
-                    int adcValue = (response[4] << 8) | response[5];
-
-                    if (adcValue >= 0 && adcValue <= 1023)
-                    {
-                        adcValues.Add(adcValue);
-                        sampleTimes.Add(DateTime.Now);
-
-                        DrawGraph();
-                    }
-                }
-            }
-            catch
-            {
-                ClosePIC();
-
-                MessageBox.Show("PIC connection lost.",
-                    "Connection Error");
-            }
-            finally
-            {
-                picWaiting = false;
-            }
         }
 
         // Graph Drawing ---------------------------------------
@@ -216,10 +161,7 @@ namespace Datalogger
             // Draw Graph Lines and Voltage Labels
             for (int i = 0; i <= 4; i++)
             {
-                int adc = i * 256;
-
-                if (adc > 1023)
-                    adc = 1023;
+                int adc = i * 1023 / 4;
 
                 int y = bottom - (int)(adc / 1023.0 * (bottom - top));
                 double voltage = adc * 5.0 / 1023.0;
@@ -398,9 +340,9 @@ namespace Datalogger
             }
         }
 
-        // Button Events ---------------------------------------
+        // Event Handlers below here ---------------------------------------
 
-        void StartButton_Click(object sender, EventArgs e)
+        private void StartButton_Click(object sender, EventArgs e)
         {
             if (!picConnected)
             {
@@ -420,7 +362,7 @@ namespace Datalogger
             StopButton.Enabled = true;
         }
 
-        void StopButton_Click(object sender, EventArgs e)
+        private void StopButton_Click(object sender, EventArgs e)
         {
             isLogging = false;
             SampleTimer.Stop();
@@ -429,12 +371,12 @@ namespace Datalogger
             StopButton.Enabled = false;
         }
 
-        void SaveButton_Click(object sender, EventArgs e)
+        private void SaveButton_Click(object sender, EventArgs e)
         {
             SaveLog();
         }
 
-        void SampleRateComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        private void SampleRateComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             switch (SampleRateComboBox.SelectedIndex)
             {
@@ -460,7 +402,7 @@ namespace Datalogger
                 "Rate: " + SampleRateComboBox.Text;
         }
 
-        void GraphViewComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        private void GraphViewComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             DrawGraph();
         }
@@ -470,9 +412,62 @@ namespace Datalogger
             this.Close();
         }
 
-        // Form Closing ----------------------------------------
+        private void SampleTimer_Tick(object sender, EventArgs e)
+        {
+            if (!picConnected || !isLogging || picWaiting)
+                return;
 
-        void Datalogger_FormClosing(object sender, FormClosingEventArgs e)
+            try
+            {
+                picWaiting = true;
+
+                // Request AN0
+                byte[] request = { 0x24, 0x41, 0x01, 0x00 };
+
+                picPort.DiscardInBuffer();
+                picPort.Write(request, 0, request.Length);
+
+                // Read ADC Response
+                byte[] response = new byte[6];
+                int count = 0;
+
+                while (count < response.Length)
+                {
+                    count += picPort.Read(response, count,
+                        response.Length - count);
+                }
+
+                // Check Response
+                if (response[0] == 0x24 &&
+                    response[1] == 0x41 &&
+                    response[2] == 0x03 &&
+                    response[3] == 0x00)
+                {
+                    int adcValue = (response[4] << 8) | response[5];
+
+                    if (adcValue >= 0 && adcValue <= 1023)
+                    {
+                        adcValues.Add(adcValue);
+                        sampleTimes.Add(DateTime.Now);
+
+                        DrawGraph();
+                    }
+                }
+            }
+            catch
+            {
+                ClosePIC();
+
+                MessageBox.Show("PIC connection lost.",
+                    "Connection Error");
+            }
+            finally
+            {
+                picWaiting = false;
+            }
+        }
+
+        private void Datalogger_FormClosing(object sender, FormClosingEventArgs e)
         {
             SampleTimer.Stop();
 
