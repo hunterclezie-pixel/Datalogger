@@ -340,25 +340,74 @@ namespace Datalogger
 
         // Button Events ---------------------------------------
 
-        private void StartButton_Click(object sender, EventArgs e)
+        void StartButton_Click(object sender, EventArgs e)
         {
+            if (!picConnected)
+            {
+                FindPIC();
 
+                if (!picConnected)
+                {
+                    MessageBox.Show("PIC not connected.");
+                    return;
+                }
+            }
+
+            isLogging = true;
+            SampleTimer.Start();
+
+            StartButton.Enabled = false;
+            StopButton.Enabled = true;
         }
 
-        private void StopButton_Click(object sender, EventArgs e)
+        void StopButton_Click(object sender, EventArgs e)
         {
+            isLogging = false;
+            SampleTimer.Stop();
 
+            StartButton.Enabled = true;
+            StopButton.Enabled = false;
         }
 
-        private void SaveButton_Click(object sender, EventArgs e)
+        void SaveButton_Click(object sender, EventArgs e)
         {
-
+            SaveLog();
         }
 
+        void SampleRateComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (SampleRateComboBox.SelectedIndex)
+            {
+                case 0: sampleRate = 600000; break;
+                case 1: sampleRate = 300000; break;
+                case 2: sampleRate = 60000; break;
+                case 3: sampleRate = 30000; break;
+                case 4: sampleRate = 10000; break;
+                case 5: sampleRate = 5000; break;
+                case 6: sampleRate = 1000; break;
+                case 7: sampleRate = 500; break;
+                case 8: sampleRate = 200; break;
+                case 9: sampleRate = 100; break;
+
+                default:
+                    MessageBox.Show("Invalid sample rate.");
+                    return;
+            }
+
+            SampleTimer.Interval = sampleRate;
+
+            RateStatusLabel.Text =
+                "Rate: " + SampleRateComboBox.Text;
+        }
+
+        void GraphViewComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            DrawGraph();
+        }
 
         private void ExitButton_Click(object sender, EventArgs e)
         {
-
+            this.Close();
         }
 
         // Form Closing ----------------------------------------
