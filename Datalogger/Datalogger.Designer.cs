@@ -48,6 +48,15 @@
             OpenFileDialog = new OpenFileDialog();
             SaveFileDialog = new SaveFileDialog();
             ExitButton = new Button();
+            FileMenuStrip = new ToolStripMenuItem();
+            aboutToolStripMenuItem = new ToolStripMenuItem();
+            StartContextMenu = new ToolStripMenuItem();
+            StopContextMenu = new ToolStripMenuItem();
+            SaveContextMenu = new ToolStripMenuItem();
+            OpenContextMenu = new ToolStripMenuItem();
+            ExitContextMenu = new ToolStripMenuItem();
+            MenuStrip.SuspendLayout();
+            GraphicsContextMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)GraphPictureBox).BeginInit();
             StatusStrip.SuspendLayout();
             SuspendLayout();
@@ -55,22 +64,24 @@
             // MenuStrip
             // 
             MenuStrip.ImageScalingSize = new Size(20, 20);
+            MenuStrip.Items.AddRange(new ToolStripItem[] { FileMenuStrip, aboutToolStripMenuItem });
             MenuStrip.Location = new Point(0, 0);
             MenuStrip.Name = "MenuStrip";
-            MenuStrip.Size = new Size(800, 24);
+            MenuStrip.Size = new Size(800, 28);
             MenuStrip.TabIndex = 0;
             MenuStrip.Text = "menuStrip1";
             // 
             // GraphicsContextMenu
             // 
             GraphicsContextMenu.ImageScalingSize = new Size(20, 20);
+            GraphicsContextMenu.Items.AddRange(new ToolStripItem[] { StartContextMenu, StopContextMenu, SaveContextMenu, OpenContextMenu, ExitContextMenu });
             GraphicsContextMenu.Name = "GraphicsContextMenu";
-            GraphicsContextMenu.Size = new Size(61, 4);
+            GraphicsContextMenu.Size = new Size(211, 152);
             // 
             // SampleRateComboBox
             // 
             SampleRateComboBox.FormattingEnabled = true;
-            SampleRateComboBox.Location = new Point(12, 26);
+            SampleRateComboBox.Location = new Point(12, 31);
             SampleRateComboBox.Name = "SampleRateComboBox";
             SampleRateComboBox.Size = new Size(151, 28);
             SampleRateComboBox.TabIndex = 2;
@@ -78,7 +89,7 @@
             // GraphViewComboBox
             // 
             GraphViewComboBox.FormattingEnabled = true;
-            GraphViewComboBox.Location = new Point(12, 60);
+            GraphViewComboBox.Location = new Point(12, 65);
             GraphViewComboBox.Name = "GraphViewComboBox";
             GraphViewComboBox.Size = new Size(151, 28);
             GraphViewComboBox.TabIndex = 3;
@@ -118,16 +129,16 @@
             // 
             // GraphPictureBox
             // 
-            GraphPictureBox.Location = new Point(169, 27);
+            GraphPictureBox.Location = new Point(169, 31);
             GraphPictureBox.Name = "GraphPictureBox";
-            GraphPictureBox.Size = new Size(619, 337);
+            GraphPictureBox.Size = new Size(619, 333);
             GraphPictureBox.TabIndex = 7;
             GraphPictureBox.TabStop = false;
             // 
             // ADCValueLabel
             // 
             ADCValueLabel.AutoSize = true;
-            ADCValueLabel.Location = new Point(12, 102);
+            ADCValueLabel.Location = new Point(12, 107);
             ADCValueLabel.Name = "ADCValueLabel";
             ADCValueLabel.Size = new Size(128, 20);
             ADCValueLabel.TabIndex = 8;
@@ -136,7 +147,7 @@
             // SampleCountLabel
             // 
             SampleCountLabel.AutoSize = true;
-            SampleCountLabel.Location = new Point(12, 132);
+            SampleCountLabel.Location = new Point(12, 137);
             SampleCountLabel.Name = "SampleCountLabel";
             SampleCountLabel.Size = new Size(143, 20);
             SampleCountLabel.TabIndex = 9;
@@ -188,6 +199,49 @@
             ExitButton.UseVisualStyleBackColor = true;
             ExitButton.Click += ExitButton_Click;
             // 
+            // FileMenuStrip
+            // 
+            FileMenuStrip.Name = "FileMenuStrip";
+            FileMenuStrip.Size = new Size(46, 24);
+            FileMenuStrip.Text = "File";
+            // 
+            // aboutToolStripMenuItem
+            // 
+            aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
+            aboutToolStripMenuItem.Size = new Size(64, 24);
+            aboutToolStripMenuItem.Text = "About";
+            // 
+            // StartContextMenu
+            // 
+            StartContextMenu.Name = "StartContextMenu";
+            StartContextMenu.Size = new Size(210, 24);
+            StartContextMenu.Text = "Start";
+            // 
+            // StopContextMenu
+            // 
+            StopContextMenu.Name = "StopContextMenu";
+            StopContextMenu.Size = new Size(210, 24);
+            StopContextMenu.Text = "Stop";
+            // 
+            // SaveContextMenu
+            // 
+            SaveContextMenu.Name = "SaveContextMenu";
+            SaveContextMenu.Size = new Size(210, 24);
+            SaveContextMenu.Text = "Save";
+            // 
+            // OpenContextMenu
+            // 
+            OpenContextMenu.Name = "OpenContextMenu";
+            OpenContextMenu.Size = new Size(210, 24);
+            OpenContextMenu.Text = "Open";
+            OpenContextMenu.Click += OpenContextMenu_Click;
+            // 
+            // ExitContextMenu
+            // 
+            ExitContextMenu.Name = "ExitContextMenu";
+            ExitContextMenu.Size = new Size(210, 24);
+            ExitContextMenu.Text = "Exit";
+            // 
             // Datalogger
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
@@ -207,6 +261,9 @@
             MainMenuStrip = MenuStrip;
             Name = "Datalogger";
             Text = "DataLoggerForm";
+            MenuStrip.ResumeLayout(false);
+            MenuStrip.PerformLayout();
+            GraphicsContextMenu.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)GraphPictureBox).EndInit();
             StatusStrip.ResumeLayout(false);
             StatusStrip.PerformLayout();
@@ -235,5 +292,12 @@
         private OpenFileDialog OpenFileDialog;
         private SaveFileDialog SaveFileDialog;
         private Button ExitButton;
+        private ToolStripMenuItem FileMenuStrip;
+        private ToolStripMenuItem aboutToolStripMenuItem;
+        private ToolStripMenuItem StartContextMenu;
+        private ToolStripMenuItem StopContextMenu;
+        private ToolStripMenuItem SaveContextMenu;
+        private ToolStripMenuItem OpenContextMenu;
+        private ToolStripMenuItem ExitContextMenu;
     }
 }

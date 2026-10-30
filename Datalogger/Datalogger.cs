@@ -1,5 +1,13 @@
+using System.Diagnostics.Metrics;
 using System.IO.Ports;
 
+/* 
+Hunter Clezie 
+Fall 2026
+RCET 3371
+Datalogger
+github url: https://github.com/hunterclezie-pixel/Datalogger.git
+*/
 namespace Datalogger
 {
     public partial class Datalogger : Form
@@ -115,7 +123,7 @@ namespace Datalogger
                 {
                     if (picPort.IsOpen)
                         picPort.Close();
-                        picPort.Dispose();
+                    picPort.Dispose();
                 }
             }
 
@@ -376,6 +384,11 @@ namespace Datalogger
             SaveLog();
         }
 
+        private void ExitButton_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
         private void SampleRateComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             switch (SampleRateComboBox.SelectedIndex)
@@ -405,11 +418,6 @@ namespace Datalogger
         private void GraphViewComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             DrawGraph();
-        }
-
-        private void ExitButton_Click(object sender, EventArgs e)
-        {
-            this.Close();
         }
 
         private void SampleTimer_Tick(object sender, EventArgs e)
@@ -475,6 +483,11 @@ namespace Datalogger
                 picPort.Close();
 
             picPort.Dispose();
+        }
+
+        private void OpenContextMenu_Click(object sender, EventArgs e)
+        {
+            OpenLog();
         }
     }
 }
