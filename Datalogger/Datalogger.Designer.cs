@@ -31,7 +31,11 @@
             components = new System.ComponentModel.Container();
             MenuStrip = new MenuStrip();
             FileMenuStrip = new ToolStripMenuItem();
-            aboutToolStripMenuItem = new ToolStripMenuItem();
+            StartStripMenuItem = new ToolStripMenuItem();
+            StopStripMenuItem = new ToolStripMenuItem();
+            SaveStripMenuItem = new ToolStripMenuItem();
+            ExitStripMenuItem = new ToolStripMenuItem();
+            AboutStripMenuItem = new ToolStripMenuItem();
             GraphicsContextMenu = new ContextMenuStrip(components);
             StartContextMenu = new ToolStripMenuItem();
             StopContextMenu = new ToolStripMenuItem();
@@ -55,6 +59,7 @@
             OpenFileDialog = new OpenFileDialog();
             SaveFileDialog = new SaveFileDialog();
             ExitButton = new Button();
+            OpenStripMenuItem = new ToolStripMenuItem();
             MenuStrip.SuspendLayout();
             GraphicsContextMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)GraphPictureBox).BeginInit();
@@ -64,7 +69,7 @@
             // MenuStrip
             // 
             MenuStrip.ImageScalingSize = new Size(20, 20);
-            MenuStrip.Items.AddRange(new ToolStripItem[] { FileMenuStrip, aboutToolStripMenuItem });
+            MenuStrip.Items.AddRange(new ToolStripItem[] { FileMenuStrip, AboutStripMenuItem });
             MenuStrip.Location = new Point(0, 0);
             MenuStrip.Name = "MenuStrip";
             MenuStrip.Size = new Size(800, 28);
@@ -73,15 +78,41 @@
             // 
             // FileMenuStrip
             // 
+            FileMenuStrip.DropDownItems.AddRange(new ToolStripItem[] { StartStripMenuItem, StopStripMenuItem, SaveStripMenuItem, ExitStripMenuItem, OpenStripMenuItem });
             FileMenuStrip.Name = "FileMenuStrip";
             FileMenuStrip.Size = new Size(46, 24);
             FileMenuStrip.Text = "File";
             // 
-            // aboutToolStripMenuItem
+            // StartStripMenuItem
             // 
-            aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            aboutToolStripMenuItem.Size = new Size(64, 24);
-            aboutToolStripMenuItem.Text = "About";
+            StartStripMenuItem.Name = "StartStripMenuItem";
+            StartStripMenuItem.Size = new Size(224, 26);
+            StartStripMenuItem.Text = "Start";
+            // 
+            // StopStripMenuItem
+            // 
+            StopStripMenuItem.Name = "StopStripMenuItem";
+            StopStripMenuItem.Size = new Size(224, 26);
+            StopStripMenuItem.Text = "Stop";
+            // 
+            // SaveStripMenuItem
+            // 
+            SaveStripMenuItem.Name = "SaveStripMenuItem";
+            SaveStripMenuItem.Size = new Size(224, 26);
+            SaveStripMenuItem.Text = "Save";
+            // 
+            // ExitStripMenuItem
+            // 
+            ExitStripMenuItem.Name = "ExitStripMenuItem";
+            ExitStripMenuItem.Size = new Size(224, 26);
+            ExitStripMenuItem.Text = "Exit";
+            // 
+            // AboutStripMenuItem
+            // 
+            AboutStripMenuItem.Name = "AboutStripMenuItem";
+            AboutStripMenuItem.Size = new Size(64, 24);
+            AboutStripMenuItem.Text = "About";
+            AboutStripMenuItem.Click += AboutStripMenuItem_Click;
             // 
             // GraphicsContextMenu
             // 
@@ -245,6 +276,12 @@
             ExitButton.UseVisualStyleBackColor = true;
             ExitButton.Click += ExitButton_Click;
             // 
+            // OpenStripMenuItem
+            // 
+            OpenStripMenuItem.Name = "OpenStripMenuItem";
+            OpenStripMenuItem.Size = new Size(224, 26);
+            OpenStripMenuItem.Text = "Open";
+            // 
             // Datalogger
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
@@ -296,11 +333,16 @@
         private SaveFileDialog SaveFileDialog;
         private Button ExitButton;
         private ToolStripMenuItem FileMenuStrip;
-        private ToolStripMenuItem aboutToolStripMenuItem;
+        private ToolStripMenuItem AboutStripMenuItem;
         private ToolStripMenuItem StartContextMenu;
         private ToolStripMenuItem StopContextMenu;
         private ToolStripMenuItem SaveContextMenu;
         private ToolStripMenuItem OpenContextMenu;
         private ToolStripMenuItem ExitContextMenu;
+        private ToolStripMenuItem StartStripMenuItem;
+        private ToolStripMenuItem StopStripMenuItem;
+        private ToolStripMenuItem SaveStripMenuItem;
+        private ToolStripMenuItem ExitStripMenuItem;
+        private ToolStripMenuItem OpenStripMenuItem;
     }
 }

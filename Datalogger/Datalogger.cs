@@ -44,6 +44,19 @@ namespace Datalogger
             GraphViewComboBox.SelectedIndexChanged += GraphViewComboBox_SelectedIndexChanged;
             GraphPictureBox.Resize += GraphPictureBox_Resize;
 
+            // Event handlers for the StripMenuItems
+            StartStripMenuItem.Click += StartButton_Click;
+            StopStripMenuItem.Click += StopButton_Click;
+            SaveStripMenuItem.Click += SaveButton_Click;
+            ExitStripMenuItem.Click += ExitButton_Click;
+            OpenStripMenuItem.Click += OpenContextMenu_Click;
+
+            // Event handlers for the ContextMenuStrip
+            StartContextMenu.Click += StartButton_Click;
+            StopContextMenu.Click += StopButton_Click;
+            SaveContextMenu.Click += SaveButton_Click;
+            ExitContextMenu.Click += ExitButton_Click;
+
             // Timer and Form Events
             SampleTimer.Interval = 20;
             SampleTimer.Tick += SampleTimer_Tick;
@@ -648,6 +661,14 @@ namespace Datalogger
                 picPort.Dispose();
             }
             catch { }
+        }
+
+        private void AboutStripMenuItem_Click(object sender, EventArgs e)
+        {
+            {
+                MessageBox.Show("This program was designed to log data from a PIC microcontroller.\n" +
+                    "It provides a simple interface for configuring logging parameters and viewing the logged data.");
+            }
         }
     }
 }
