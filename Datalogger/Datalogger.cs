@@ -402,6 +402,40 @@ namespace Datalogger
             }
         }
 
+        // Starts recording the ADC values
+        void StartLogging()
+        {
+            if (!picConnected)
+            {
+                MessageBox.Show("PIC not connected. Searching for device.");
+                SearchForPIC();
+                return;
+            }
+
+            if (openedLog)
+            {
+                adcValues.Clear();
+                sampleTimes.Clear();
+                openedLog = false;
+                GraphPictureBox.Invalidate();
+            }
+
+            isLogging = true;
+            nextSample = DateTime.Now;
+
+            StartButton.Enabled = false;
+            StopButton.Enabled = true;
+        }
+
+        // Stops recording new ADC values
+        void StopLogging()
+        {
+            isLogging = false;
+
+            StartButton.Enabled = true;
+            StopButton.Enabled = false;
+        }
+
         // Exports all recorded readings to a file selected by the user
         void SaveLog()
         {
@@ -501,32 +535,12 @@ namespace Datalogger
 
         private void StartButton_Click(object sender, EventArgs e)
         {
-            if (!picConnected)
-            {
-                MessageBox.Show("PIC not connected. Searching for device.");
-                SearchForPIC();
-                return;
-            }
-
-            if (openedLog)
-            {
-                adcValues.Clear();
-                sampleTimes.Clear();
-                openedLog = false;
-                DrawGraph();
-            }
-
-            isLogging = true;
-            nextSample = DateTime.Now;
-            StartButton.Enabled = false;
-            StopButton.Enabled = true;
+            StartLogging();
         }
 
         private void StopButton_Click(object sender, EventArgs e)
         {
-            isLogging = false;
-            StartButton.Enabled = true;
-            StopButton.Enabled = false;
+            StopLogging();
         }
 
         private void SaveButton_Click(object sender, EventArgs e)
