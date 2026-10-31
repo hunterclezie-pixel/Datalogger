@@ -35,6 +35,7 @@
             StopStripMenuItem = new ToolStripMenuItem();
             SaveStripMenuItem = new ToolStripMenuItem();
             ExitStripMenuItem = new ToolStripMenuItem();
+            OpenStripMenuItem = new ToolStripMenuItem();
             AboutStripMenuItem = new ToolStripMenuItem();
             GraphicsContextMenu = new ContextMenuStrip(components);
             StartContextMenu = new ToolStripMenuItem();
@@ -59,7 +60,6 @@
             OpenFileDialog = new OpenFileDialog();
             SaveFileDialog = new SaveFileDialog();
             ExitButton = new Button();
-            OpenStripMenuItem = new ToolStripMenuItem();
             MenuStrip.SuspendLayout();
             GraphicsContextMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)GraphPictureBox).BeginInit();
@@ -106,6 +106,12 @@
             ExitStripMenuItem.Name = "ExitStripMenuItem";
             ExitStripMenuItem.Size = new Size(224, 26);
             ExitStripMenuItem.Text = "Exit";
+            // 
+            // OpenStripMenuItem
+            // 
+            OpenStripMenuItem.Name = "OpenStripMenuItem";
+            OpenStripMenuItem.Size = new Size(224, 26);
+            OpenStripMenuItem.Text = "Open";
             // 
             // AboutStripMenuItem
             // 
@@ -158,7 +164,7 @@
             SampleRateComboBox.Location = new Point(12, 31);
             SampleRateComboBox.Name = "SampleRateComboBox";
             SampleRateComboBox.Size = new Size(151, 28);
-            SampleRateComboBox.TabIndex = 2;
+            SampleRateComboBox.TabIndex = 5;
             ToolTip.SetToolTip(SampleRateComboBox, "Select sampling rate");
             // 
             // GraphViewComboBox
@@ -167,7 +173,7 @@
             GraphViewComboBox.Location = new Point(12, 65);
             GraphViewComboBox.Name = "GraphViewComboBox";
             GraphViewComboBox.Size = new Size(151, 28);
-            GraphViewComboBox.TabIndex = 3;
+            GraphViewComboBox.TabIndex = 6;
             ToolTip.SetToolTip(GraphViewComboBox, "Select graph view");
             // 
             // SaveButton
@@ -175,7 +181,7 @@
             SaveButton.Location = new Point(572, 370);
             SaveButton.Name = "SaveButton";
             SaveButton.Size = new Size(105, 51);
-            SaveButton.TabIndex = 4;
+            SaveButton.TabIndex = 3;
             SaveButton.Text = "Save";
             ToolTip.SetToolTip(SaveButton, "Save collected data");
             SaveButton.UseVisualStyleBackColor = true;
@@ -186,7 +192,7 @@
             StopButton.Location = new Point(461, 370);
             StopButton.Name = "StopButton";
             StopButton.Size = new Size(105, 51);
-            StopButton.TabIndex = 5;
+            StopButton.TabIndex = 2;
             StopButton.Text = "Stop";
             ToolTip.SetToolTip(StopButton, "Stop collecting ADC data");
             StopButton.UseVisualStyleBackColor = true;
@@ -197,7 +203,7 @@
             StartButton.Location = new Point(350, 370);
             StartButton.Name = "StartButton";
             StartButton.Size = new Size(105, 51);
-            StartButton.TabIndex = 6;
+            StartButton.TabIndex = 1;
             StartButton.Text = "Start";
             ToolTip.SetToolTip(StartButton, "Start collecting ADC data");
             StartButton.UseVisualStyleBackColor = true;
@@ -218,7 +224,7 @@
             ADCValueLabel.Location = new Point(12, 107);
             ADCValueLabel.Name = "ADCValueLabel";
             ADCValueLabel.Size = new Size(128, 20);
-            ADCValueLabel.TabIndex = 8;
+            ADCValueLabel.TabIndex = 7;
             ADCValueLabel.Text = "Lastest ADC Value";
             // 
             // SampleCountLabel
@@ -227,7 +233,7 @@
             SampleCountLabel.Location = new Point(12, 137);
             SampleCountLabel.Name = "SampleCountLabel";
             SampleCountLabel.Size = new Size(143, 20);
-            SampleCountLabel.TabIndex = 9;
+            SampleCountLabel.TabIndex = 8;
             SampleCountLabel.Text = "Number Of Samples";
             // 
             // StatusStrip
@@ -271,16 +277,10 @@
             ExitButton.Location = new Point(683, 370);
             ExitButton.Name = "ExitButton";
             ExitButton.Size = new Size(105, 51);
-            ExitButton.TabIndex = 11;
+            ExitButton.TabIndex = 4;
             ExitButton.Text = "Exit";
             ExitButton.UseVisualStyleBackColor = true;
             ExitButton.Click += ExitButton_Click;
-            // 
-            // OpenStripMenuItem
-            // 
-            OpenStripMenuItem.Name = "OpenStripMenuItem";
-            OpenStripMenuItem.Size = new Size(224, 26);
-            OpenStripMenuItem.Text = "Open";
             // 
             // Datalogger
             // 

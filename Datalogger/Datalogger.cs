@@ -21,6 +21,8 @@ namespace Datalogger
             StartButton.Enabled = true;
             StopButton.Enabled = false;
 
+            // Only allow the sample rates listed below
+            SampleRateComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
             SampleRateComboBox.Items.Clear();
             SampleRateComboBox.Items.AddRange(new string[]
             {
@@ -63,6 +65,7 @@ namespace Datalogger
             this.FormClosing += Datalogger_FormClosing;
             SampleTimer.Start();
 
+            UpdateStatusBar();
             DrawGraph();
         }
 
@@ -72,7 +75,7 @@ namespace Datalogger
         bool picScanning = false;
         bool picWaiting = false;
         bool isLogging = false;
-        bool closing = false;
+        volatile bool closing = false;
         bool openedLog = false;
         int sampleRate = 100;
         int rxCount = 0;
@@ -83,8 +86,48 @@ namespace Datalogger
         List<int> adcValues = new List<int>();
         List<DateTime> sampleTimes = new List<DateTime>();
         string logFile = "";
+        ToolTip tips = new ToolTip();
 
         //Custom Methods below here --------------------------------------------------------------
+
+        // Updates the connection, sample rate, and current log file
+        void UpdateStatusBar()
+        {
+            if (picConnected)
+                PicStatusLabel.Text = "PIC: Connected (" + picPort.PortName + ")";
+            else if (picScanning)
+                PicStatusLabel.Text = "PIC: Searching...";
+            else
+                PicStatusLabel.Text = "PIC: Disconnected";
+
+            RateStatusLabel.Text = "Rate: " + SampleRateComboBox.Text;
+
+            if (logFile == "")
+                FileStatusLabel.Text = "File: None";
+            else
+                FileStatusLabel.Text = "File: " + logFile;
+
+            FileStatusLabel.ToolTipText = logFile;
+        }
+
+        // Converts the selected sample rate to milliseconds
+        int GetSampleRate()
+        {
+            switch (SampleRateComboBox.SelectedIndex)
+            {
+                case 0: return 600000;
+                case 1: return 300000;
+                case 2: return 60000;
+                case 3: return 30000;
+                case 4: return 10000;
+                case 5: return 5000;
+                case 6: return 1000;
+                case 7: return 500;
+                case 8: return 200;
+                case 9: return 100;
+                default: return 0;
+            }
+        }
 
         // Checks a serial port to see if it belongs to the PIC
         SerialPort TryPort(string portName)
@@ -175,7 +218,7 @@ namespace Datalogger
                 return;
 
             picScanning = true;
-            PicStatusLabel.Text = "PIC: Searching...";
+            UpdateStatusBar();
             SerialPort found = null;
 
             try
@@ -203,13 +246,13 @@ namespace Datalogger
                 picConnected = true;
                 picWaiting = false;
                 rxCount = 0;
-                PicStatusLabel.Text = "PIC: Connected (" + picPort.PortName + ")";
                 nextSample = DateTime.Now;
+                UpdateStatusBar();
             }
             else
             {
-                PicStatusLabel.Text = "PIC: Disconnected";
                 nextScan = DateTime.Now.AddSeconds(2);
+                UpdateStatusBar();
             }
         }
 
@@ -227,11 +270,11 @@ namespace Datalogger
             }
             catch { }
 
-            PicStatusLabel.Text = "PIC: Disconnected";
             nextScan = DateTime.Now.AddSeconds(2);
+            UpdateStatusBar();
         }
 
-        // Requests the AN0 value from the PIC
+        // Requests the AN1 value from the PIC
         void RequestADC()
         {
             if (!picConnected || picWaiting)
@@ -239,7 +282,7 @@ namespace Datalogger
 
             try
             {
-                byte[] request = { 0x24, 0x41, 0x01, 0x00 };
+                byte[] request = { 0x24, 0x41, 0x01, 0x01 };
                 picPort.Write(request, 0, request.Length);
                 picWaiting = true;
                 replyDeadline = DateTime.Now.AddMilliseconds(500);
@@ -282,25 +325,29 @@ namespace Datalogger
                 return;
             }
 
-            // AN0 response: 24 41 03 00 HighByte LowByte
+            // AN1 response: 24 41 03 01 HighByte LowByte
             if (rxBuffer[1] == 0x41 && rxBuffer[2] == 0x03 &&
-                rxBuffer[3] == 0x00 && picWaiting)
+                rxBuffer[3] == 0x01 && picWaiting)
             {
                 int adcValue = (rxBuffer[4] << 8) | rxBuffer[5];
-
-                if (adcValue >= 0 && adcValue <= 1023 && isLogging)
-                {
-                    DateTime time = DateTime.Now;
-                    adcValues.Add(adcValue);
-                    sampleTimes.Add(time);
-                    SaveSample(adcValue, time);
-                    DrawGraph();
-                }
-
+                StoreSample(adcValue);
                 picWaiting = false;
             }
 
             rxCount = 0;
+        }
+
+        // Records one valid ADC sample, saves it, and updates the graph
+        void StoreSample(int adcValue)
+        {
+            if (!isLogging || adcValue < 0 || adcValue > 1023)
+                return;
+
+            DateTime time = DateTime.Now;
+            adcValues.Add(adcValue);
+            sampleTimes.Add(time);
+            SaveSample(adcValue, time);
+            DrawGraph();
         }
 
         // Draws the ADC readings onto the PictureBox
@@ -400,11 +447,12 @@ namespace Datalogger
 
                 int highByte = adcValue >> 8;
                 int lowByte = adcValue & 0xFF;
-                string timestamp = time.ToString("yyMMddHHmmssff");
+                // fff stores the full three-digit millisecond value
+                string timestamp = time.ToString("yyMMddHHmmssfff");
 
-                string line = "\"$$AN0\"," + highByte + "," + lowByte + "," + timestamp;
+                string line = "\"$$AN1\"," + highByte + "," + lowByte + "," + timestamp;
                 File.AppendAllText(logFile, line + Environment.NewLine);
-                FileStatusLabel.Text = "File: " + Path.GetFileName(logFile);
+                UpdateStatusBar();
             }
             catch (Exception ex)
             {
@@ -433,6 +481,14 @@ namespace Datalogger
                 GraphPictureBox.Invalidate();
             }
 
+            int interval = GetSampleRate();
+            if (interval <= 0)
+            {
+                MessageBox.Show("Please choose a valid sample rate.");
+                return;
+            }
+
+            sampleRate = interval;
             isLogging = true;
             nextSample = DateTime.Now;
 
@@ -449,7 +505,7 @@ namespace Datalogger
             StopButton.Enabled = false;
         }
 
-        // Exports all recorded readings to a file selected by the user
+        // Confirms or saves the most recent hour to its hourly log file
         void SaveLog()
         {
             if (adcValues.Count == 0)
@@ -458,27 +514,56 @@ namespace Datalogger
                 return;
             }
 
+            // Every hourly file contains only readings from that hour
+            DateTime selectedHour = sampleTimes[sampleTimes.Count - 1];
+            string hour = selectedHour.ToString("yyMMddHH");
+            string fileName = "log_" + hour + ".log";
+            string hourlyPath = Path.Combine(Application.StartupPath, fileName);
+
             SaveFileDialog dialog = new SaveFileDialog();
             dialog.Filter = "Log Files (*.log)|*.log";
-            dialog.FileName = "export_" + DateTime.Now.ToString("yyMMddHHmmss") + ".log";
-            dialog.OverwritePrompt = true;
+            dialog.InitialDirectory = Application.StartupPath;
+            dialog.FileName = fileName;
+
+            // The hourly file may already exist from automatic saving
+            dialog.OverwritePrompt = false;
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
+                // The assignment requires the application's folder and hourly name
+                if (!string.Equals(Path.GetFullPath(dialog.FileName),
+                    Path.GetFullPath(hourlyPath), StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("Please save as " + fileName +
+                        " in the application folder.");
+                    dialog.Dispose();
+                    return;
+                }
+
                 try
                 {
-                    using (StreamWriter writer = new StreamWriter(dialog.FileName))
+                    // Samples were already added by SaveSample while logging.
+                    // Only create the file here if it does not already exist.
+                    if (!File.Exists(hourlyPath))
                     {
-                        for (int i = 0; i < adcValues.Count; i++)
+                        using (StreamWriter writer = new StreamWriter(hourlyPath))
                         {
-                            int highByte = adcValues[i] >> 8;
-                            int lowByte = adcValues[i] & 0xFF;
-                            string timestamp = sampleTimes[i].ToString("yyMMddHHmmssff");
-                            writer.WriteLine("\"$$AN0\"," + highByte + "," + lowByte + "," + timestamp);
+                            for (int i = 0; i < adcValues.Count; i++)
+                            {
+                                if (sampleTimes[i].ToString("yyMMddHH") != hour)
+                                    continue;
+
+                                int highByte = adcValues[i] >> 8;
+                                int lowByte = adcValues[i] & 0xFF;
+                                string timestamp = sampleTimes[i].ToString("yyMMddHHmmssfff");
+                                writer.WriteLine("\"$$AN1\"," + highByte + "," + lowByte + "," + timestamp);
+                            }
                         }
                     }
-                    FileStatusLabel.Text = "File: " + Path.GetFileName(dialog.FileName);
-                    MessageBox.Show("Data saved successfully!");
+
+                    logFile = hourlyPath;
+                    UpdateStatusBar();
+                    MessageBox.Show("Log saved: " + fileName);
                 }
                 catch (Exception ex)
                 {
@@ -513,13 +598,18 @@ namespace Datalogger
                     {
                         string[] data = line.Split(',');
 
-                        if (data.Length != 4 || data[0].Trim('"') != "$$AN0")
+                        if (data.Length != 4 || data[0].Trim('"') != "$$AN1")
                             continue;
 
                         int highByte = int.Parse(data[1]);
                         int lowByte = int.Parse(data[2]);
                         int adcValue = (highByte << 8) | lowByte;
-                        DateTime time = DateTime.ParseExact(data[3], "yyMMddHHmmssff", null);
+                        // Old logs may have only two fractional-second digits
+                        string timeFormat = "yyMMddHHmmssfff";
+                        if (data[3].Length == 14)
+                            timeFormat = "yyMMddHHmmssff";
+
+                        DateTime time = DateTime.ParseExact(data[3], timeFormat, null);
 
                         if (adcValue >= 0 && adcValue <= 1023)
                         {
@@ -532,7 +622,7 @@ namespace Datalogger
                     sampleTimes = newTimes;
                     openedLog = true;
                     logFile = dialog.FileName;
-                    FileStatusLabel.Text = "File: " + Path.GetFileName(logFile);
+                    UpdateStatusBar();
                     DrawGraph();
                 }
                 catch (Exception ex)
@@ -568,23 +658,15 @@ namespace Datalogger
 
         private void SampleRateComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            switch (SampleRateComboBox.SelectedIndex)
+            sampleRate = GetSampleRate();
+            if (sampleRate <= 0)
             {
-                case 0: sampleRate = 600000; break;
-                case 1: sampleRate = 300000; break;
-                case 2: sampleRate = 60000; break;
-                case 3: sampleRate = 30000; break;
-                case 4: sampleRate = 10000; break;
-                case 5: sampleRate = 5000; break;
-                case 6: sampleRate = 1000; break;
-                case 7: sampleRate = 500; break;
-                case 8: sampleRate = 200; break;
-                case 9: sampleRate = 100; break;
-                default: return;
+                MessageBox.Show("Please choose a valid sample rate.");
+                return;
             }
 
-            RateStatusLabel.Text = "Rate: " + SampleRateComboBox.Text;
             nextSample = DateTime.Now.AddMilliseconds(sampleRate);
+            UpdateStatusBar();
         }
 
         private void GraphViewComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -665,10 +747,8 @@ namespace Datalogger
 
         private void AboutStripMenuItem_Click(object sender, EventArgs e)
         {
-            {
-                MessageBox.Show("This program was designed to log data from a PIC microcontroller.\n" +
-                    "It provides a simple interface for configuring logging parameters and viewing the logged data.");
-            }
+            MessageBox.Show("This program was designed to log data from a PIC microcontroller.\n" +
+                "It provides a simple interface for configuring logging parameters and viewing the logged data.");
         }
     }
 }
